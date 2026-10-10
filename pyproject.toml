@@ -1,11 +1,11 @@
 [project]
-name = "glassbox-lm"
+name = "vitrum"
 version = "0.1.0"
 description = "A language model where each register is a word"
 license = "Apache-2.0"
 requires-python = ">=3.11"
 dependencies = [
-    "glassbox-lm-cli",
+    "vitrum-cli",
 ]
 
 # Virtual workspace root: `uv sync` installs the CLI app (and, transitively,
@@ -17,7 +17,7 @@ package = false
 members = ["libs/*", "apps/*"]
 
 [tool.uv.sources]
-glassbox-lm-cli = { workspace = true }
+vitrum-cli = { workspace = true }
 
 [dependency-groups]
 dev = [

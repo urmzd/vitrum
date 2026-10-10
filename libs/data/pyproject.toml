@@ -1,7 +1,7 @@
 [project]
-name = "glassbox-lm-data"
+name = "vitrum-data"
 version = "0.1.0"
-description = "Glassbox LM data tooling: FineWeb shard/tokenizer download and dataset preparation"
+description = "Vitrum data tooling: FineWeb shard/tokenizer download and dataset preparation"
 license = "Apache-2.0"
 requires-python = ">=3.11"
 dependencies = [
@@ -18,4 +18,4 @@ requires = ["uv_build>=0.8.3,<0.9"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = "glassbox_lm.data"
+module-name = "vitrum.data"

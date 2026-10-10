@@ -1,56 +1,56 @@
-# Glassbox LM — Agent Guidelines
+# Vitrum — Agent Guidelines
 
 ## Principles
 
 - **Don't change defaults** — use environment variables to override hyperparameters at runtime, not by editing default values in code.
-- **Workspace layout** — the repo is a uv workspace of namespaced packages sharing the `glassbox_lm.*` namespace. Libraries live in `libs/`: `libs/core` (`glassbox_lm.core`: config, data loading, eval, quantization, model registry), `libs/architectures` (`glassbox_lm.architectures`: the model-variant zoo), `libs/data` (`glassbox_lm.data`), and `libs/training` (`glassbox_lm.training`: the single training entry point, run as `torchrun ... -m glassbox_lm.training`). The only app is `apps/cli` (`glassbox_lm.cli`), which installs the `glassbox` console command. Tests stay at the repo root; `uv sync` installs everything editable.
-- **Registry-driven discovery** — model definitions live in `libs/architectures/src/glassbox_lm/architectures/vN_*/model.py` and are auto-discovered by `glassbox_lm.core.registry` via the `version` class attribute. Discovery runs through the `glassbox_lm.architectures` entry-point group (the bundled zoo registers itself in its own pyproject), so external packages can contribute architectures the same way; `glassbox_lm.core.register` covers script/notebook-defined models. `glassbox list` prints everything discovered.
+- **Workspace layout** — the repo is a uv workspace of namespaced packages sharing the `vitrum.*` namespace. Libraries live in `libs/`: `libs/core` (`vitrum.core`: config, data loading, eval, quantization, model registry), `libs/architectures` (`vitrum.architectures`: the model-variant zoo), `libs/data` (`vitrum.data`), and `libs/training` (`vitrum.training`: the single training entry point, run as `torchrun ... -m vitrum.training`). The only app is `apps/cli` (`vitrum.cli`), which installs the `vitrum` console command. Tests stay at the repo root; `uv sync` installs everything editable.
+- **Registry-driven discovery** — model definitions live in `libs/architectures/src/vitrum/architectures/vN_*/model.py` and are auto-discovered by `vitrum.core.registry` via the `version` class attribute. Discovery runs through the `vitrum.architectures` entry-point group (the bundled zoo registers itself in its own pyproject), so external packages can contribute architectures the same way; `vitrum.core.register` covers script/notebook-defined models. `vitrum list` prints everything discovered.
 - **No embedding, no output projection** — every model operates in vocabulary space. Input is one-hot, output is the register state. Keeping the whole computation in vocab space is what makes the state *observable* (every activation is a readable distribution over words) — that is the project's goal; do not add embedding layers or output projections. The sole exception is `v13_with_embedding`, an opaque-embedding baseline kept only for comparison — do not reuse it as a template.
-- **Environment variables for everything** — all hyperparameters live in the `Hyperparameters` class in `glassbox_lm.core.config` and are read from env vars. When adding a new model, add its specific env vars there with sensible defaults.
+- **Environment variables for everything** — all hyperparameters live in the `Hyperparameters` class in `vitrum.core.config` and are read from env vars. When adding a new model, add its specific env vars there with sensible defaults.
 - **Names describe mechanism, not metaphor** — variant directory names, version strings, and class names should describe the computation performed. Neuroscience / physics / information-theory names (brain waves, Gauss, Thousand Brains, Q-tables, TPGs) are decorative and should not be used as primary identifiers.
 
 ## Adding a new model version
 
-1. Create a directory under `libs/architectures/src/glassbox_lm/architectures/`: `vN_mechanism_description/` where the suffix names the distinctive computation (e.g. `vN_linattn`, `vN_data_dependent`). Avoid metaphor.
+1. Create a directory under `libs/architectures/src/vitrum/architectures/`: `vN_mechanism_description/` where the suffix names the distinctive computation (e.g. `vN_linattn`, `vN_data_dependent`). Avoid metaphor.
 2. Add `__init__.py` and `model.py` with a single model class.
 3. The model class must implement `forward(input_ids: Tensor, target_ids: Tensor) -> Tensor` returning the loss.
 4. Set `version = "vN_mechanism_description"` on the class (matches the directory suffix).
-5. Add any new env vars to the appropriate config class in `glassbox_lm.core.config`.
-6. Add any new control tensor name patterns to `CONTROL_TENSOR_NAME_PATTERNS` in `glassbox_lm.core.quantize` (these stay in fp32 during bfloat16 training).
+5. Add any new env vars to the appropriate config class in `vitrum.core.config`.
+6. Add any new control tensor name patterns to `CONTROL_TENSOR_NAME_PATTERNS` in `vitrum.core.quantize` (these stay in fp32 during bfloat16 training).
 7. Update top-level `README.md` — add a row to the architecture table and a line to what-we've-learned.
 8. Update `TODO.md` if relevant.
 
-No harness edits are needed: `glassbox run-all`, `glassbox benchmark`,
-`glassbox observe`, and the test suite all iterate the registry. Add
-per-version env overrides to `ENV_OVERRIDES` in `glassbox_lm.cli.run_all` only
+No harness edits are needed: `vitrum run-all`, `vitrum benchmark`,
+`vitrum observe`, and the test suite all iterate the registry. Add
+per-version env overrides to `ENV_OVERRIDES` in `vitrum.cli.run_all` only
 if the variant needs non-default hyperparameters there.
 
 ## Control tensor patterns
 
-Parameters whose names end with a pattern in `CONTROL_TENSOR_NAME_PATTERNS` (suffix match, via `glassbox_lm.core.quantize.is_control_tensor`) are kept in float32 even when the model is cast to bfloat16, as are all parameters with ndim < 2. This includes: scales, biases, decay logits, gating parameters, and small learned scalars. When adding a new model, ensure any scalar/gate/scale parameters have names ending in existing patterns or add new patterns. Never add a pattern that is a suffix of ordinary projection weight names (e.g. `weight`), or the whole model silently trains fp32 — `tests/test_precision.py` gates this.
+Parameters whose names end with a pattern in `CONTROL_TENSOR_NAME_PATTERNS` (suffix match, via `vitrum.core.quantize.is_control_tensor`) are kept in float32 even when the model is cast to bfloat16, as are all parameters with ndim < 2. This includes: scales, biases, decay logits, gating parameters, and small learned scalars. When adding a new model, ensure any scalar/gate/scale parameters have names ending in existing patterns or add new patterns. Never add a pattern that is a suffix of ordinary projection weight names (e.g. `weight`), or the whole model silently trains fp32 — `tests/test_precision.py` gates this.
 
 ## Training conventions
 
-- All models train via `torchrun --standalone --nproc_per_node=N -m glassbox_lm.training` (or `glassbox train --nproc N`, which wraps it).
+- All models train via `torchrun --standalone --nproc_per_node=N -m vitrum.training` (or `vitrum train --nproc N`, which wraps it).
 - Multi-GPU via PyTorch DDP — batch size must be divisible by `num_gpus * GRAD_ACCUM_STEPS * TRAIN_SEQ_LEN(1024)`.
 - Mixed precision: bfloat16 for weights, float32 for control tensors (suffix match against `CONTROL_TENSOR_NAME_PATTERNS`) and all params with ndim < 2, autocast during forward.
 - Models are initialized in float32, cast to bfloat16, then control tensors converted back to float32.
 - Historical caveat: before 2026-06-09 a stray `"weight"` pattern substring-matched every `nn.Linear` weight, so runs from before that date trained most models with fp32 master weights (forward was still autocast bf16). Treat `raw_bytes` in old manifests accordingly.
 - The `.float()` calls inside model forward methods are intentional — they upcast for numerical stability before projections.
 - Warmup steps (since 2026-06-09) run forward+backward only, with no optimizer updates: they exercise kernels and the allocator but train nothing outside the timed budget, and the token stream continues into training without replay. Earlier runs did `warmup_steps` full-LR optimizer steps outside the wallclock budget and then replayed the same tokens.
-- Every manifest records provenance: `seed`, `git_sha`, `torch_version`, `cuda_version`, `gpu_name`, `protocol` (`wallclock-Ns` vs `fixed-N-iter`), `tokens_seen`, and the full config dump. `glassbox benchmark --seeds 1337,1338,1339` runs each version once per seed; `glassbox results` prints mean±std per config when n>1.
+- Every manifest records provenance: `seed`, `git_sha`, `torch_version`, `cuda_version`, `gpu_name`, `protocol` (`wallclock-Ns` vs `fixed-N-iter`), `tokens_seen`, and the full config dump. `vitrum benchmark --seeds 1337,1338,1339` runs each version once per seed; `vitrum results` prints mean±std per config when n>1.
 
 ## Observability tooling
 
-`glassbox observe` (module `glassbox_lm.cli.observe`) runs on CPU in float32. Most subcommands accept `--version`, `--checkpoint` (a training-run state_dict), and `--tokenizer` (an sp model, to print words instead of ids):
+`vitrum observe` (module `vitrum.cli.observe`) runs on CPU in float32. Most subcommands accept `--version`, `--checkpoint` (a training-run state_dict), and `--tokenizer` (an sp model, to print words instead of ids):
 
-- `glassbox observe trace` — top-k active vocab dims of the register state after each step; watch a prediction form.
-- `glassbox observe wordmap` — v8's learned word→word interaction matrix `W = U @ V^T + diag(d)` read straight off the parameters.
-- `glassbox observe causality` — perturb one vocab dim mid-computation and measure how far the output distribution moves (is the readable state load-bearing?).
-- `glassbox observe demo` — train v8 on a planted bigram on CPU and verify the wordmap recovers it (controlled faithfulness test).
-- `glassbox observe sweep` — map which (step, word) sites are load-bearing vs decorative across depth.
-- `glassbox observe coverage` — the observability metric: fraction of readable active-word sites that are causally load-bearing, reported across τ thresholds.
-- `glassbox observe induction` — beyond-bigram in-context key→value recall; the verdict must beat bigram chance (5/V) and the key-free copier ceiling (~1/P).
+- `vitrum observe trace` — top-k active vocab dims of the register state after each step; watch a prediction form.
+- `vitrum observe wordmap` — v8's learned word→word interaction matrix `W = U @ V^T + diag(d)` read straight off the parameters.
+- `vitrum observe causality` — perturb one vocab dim mid-computation and measure how far the output distribution moves (is the readable state load-bearing?).
+- `vitrum observe demo` — train v8 on a planted bigram on CPU and verify the wordmap recovers it (controlled faithfulness test).
+- `vitrum observe sweep` — map which (step, word) sites are load-bearing vs decorative across depth.
+- `vitrum observe coverage` — the observability metric: fraction of readable active-word sites that are causally load-bearing, reported across τ thresholds.
+- `vitrum observe induction` — beyond-bigram in-context key→value recall; the verdict must beat bigram chance (5/V) and the key-free copier ceiling (~1/P).
 
 `tests/test_observe.py` guards that state capture never alters the forward pass; `scripts/rank_sweep.sh` regenerates the docs/OBSERVABILITY.md width table (train + coverage, 3 seeds).
 
@@ -61,13 +61,13 @@ SSH config alias: `runpod` (configured in `~/.ssh/config`, key: `~/.ssh/runpod`)
 Setup on a fresh pod:
 ```bash
 cd /workspace && \
-git clone https://github.com/urmzd/glassbox-lm.git && \
-cd glassbox-lm && bash setup.sh
+git clone https://github.com/urmzd/vitrum.git && \
+cd vitrum && bash setup.sh
 ```
 
 Run training:
 ```bash
-cd /workspace/glassbox-lm && \
+cd /workspace/vitrum && \
 TRAIN_BATCH_TOKENS=491520 \
 GRAD_ACCUM_STEPS=16 \
 TRAIN_LOG_EVERY=10 \
@@ -75,7 +75,7 @@ MODEL_VERSION=v9_linattn \
 RUN_ID=<name> \
 torchrun --standalone \
 --nproc_per_node=$(nvidia-smi -L | wc -l) \
--m glassbox_lm.training
+-m vitrum.training
 ```
 
 ## Key env vars
@@ -109,9 +109,9 @@ torchrun --standalone \
 
 The non-obvious split (everything else is discoverable with ripgrep, e.g. `rg "def eval_val"`):
 
-- Two benchmark harnesses exist on purpose: `glassbox microbench` is a synthetic-data CPU microbench (speed, init loss, gradient health — never use it to rank trained quality), while `glassbox benchmark` is the wallclock-budget GPU comparison that runs `glassbox_lm.training` per version via torchrun; `glassbox results` aggregates its `logs/*_manifest.json` output.
-- Model directories are named `vN_mechanism_description/` under `libs/architectures/src/glassbox_lm/architectures/`, each containing `__init__.py` and `model.py`; `glassbox_lm.core.registry` auto-discovers any `AgiModel` subclass with a `version` set, so there is no central model list to edit anywhere (`glassbox run-all` and `glassbox benchmark` iterate the registry too).
-- Shared infrastructure lives in `libs/core` (`glassbox_lm.core`: config, data, eval, quantize, registry); the docs map is `docs/README.md` (system design: `docs/ARCHITECTURE.md`; verification: `docs/TESTING.md`); findings from the CPU microbench live in `docs/INTERESTING_FINDINGS.md`.
+- Two benchmark harnesses exist on purpose: `vitrum microbench` is a synthetic-data CPU microbench (speed, init loss, gradient health — never use it to rank trained quality), while `vitrum benchmark` is the wallclock-budget GPU comparison that runs `vitrum.training` per version via torchrun; `vitrum results` aggregates its `logs/*_manifest.json` output.
+- Model directories are named `vN_mechanism_description/` under `libs/architectures/src/vitrum/architectures/`, each containing `__init__.py` and `model.py`; `vitrum.core.registry` auto-discovers any `AgiModel` subclass with a `version` set, so there is no central model list to edit anywhere (`vitrum run-all` and `vitrum benchmark` iterate the registry too).
+- Shared infrastructure lives in `libs/core` (`vitrum.core`: config, data, eval, quantize, registry); the docs map is `docs/README.md` (system design: `docs/ARCHITECTURE.md`; verification: `docs/TESTING.md`); findings from the CPU microbench live in `docs/INTERESTING_FINDINGS.md`.
 
 ## MODEL_VERSION values
 

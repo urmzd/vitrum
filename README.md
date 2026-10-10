@@ -1,19 +1,23 @@
 <p align="center">
-  <h1 align="center">Glassbox LM</h1>
+  <h1 align="center">Vitrum</h1>
   <p align="center">
     A testbed for <em>observable</em> language models: hidden dimension equals vocabulary size, so every register state is a readable distribution over words. Built to understand how the computation works — not to win a benchmark.
     <br /><br />
     <a href="#quick-start">Quick Start</a>
     &middot;
-    <a href="https://github.com/urmzd/glassbox-lm/issues">Report Bug</a>
+    <a href="https://github.com/urmzd/vitrum/issues">Report Bug</a>
     &middot;
     <a href="#model-versions">Model Versions</a>
   </p>
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/urmzd/glassbox-lm" alt="License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/urmzd/vitrum" alt="License"></a>
 </p>
+
+> **Name:** Vitrum is Latin for glass. This repo was previously `glassbox-lm`; GitHub redirects the old URL.
+
+> **Status: paused since July 2026.** The readable variants probed so far are bigram-class: `v8_lowrank_vv` and `v9_linattn` score at chance on in-context key→value recall (see [Beyond bigram](#beyond-bigram-the-induction-test)). The tooling and the framing stand; the architectures do not yet do computation that is hard to read. Post-hoc work such as Anthropic's Jacobian lens now reads vocabulary-space variables out of opaque models directly (see [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md#the-post-hoc-alternative-the-jacobian-lens)).
 
 The problem these experiments attack: frontier language models are **billions of opaque parameters with no faithful way to see how they compute** or to link internal activity to meaning. The goal here is **observability at no performance cost** — architectures (and the tooling around them) where you can see *how the computation works* **without giving up the quality of an opaque model**. Observability that costs accuracy isn't the win; observability that's *free* is. (Whether you can drop embeddings was never the question — opacity at scale is.) For the precise problem — why readable *I/O* isn't it, and the honest catches — see [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md).
 
@@ -27,19 +31,19 @@ To be clear about the bar: this is **performance *and* observability — observa
 
 ## Observing the computation
 
-The point of word-space states is that you can read the computation directly. [`apps/cli/src/glassbox_lm/cli/observe.py`](apps/cli/src/glassbox_lm/cli/observe.py) (`glassbox observe <cmd>`; `glassbox list` prints every discovered architecture with metadata):
+The point of word-space states is that you can read the computation directly. [`apps/cli/src/vitrum/cli/observe.py`](apps/cli/src/vitrum/cli/observe.py) (`vitrum observe <cmd>`; `vitrum list` prints every discovered architecture with metadata):
 
 | Command | What it shows |
 |---|---|
-| `glassbox observe trace` | top-k active words in the register state after each step, for a prompt — watch a prediction form |
-| `glassbox observe wordmap` | for v8, the learned word→word interaction matrix `W = U@Vᵀ + diag(d)` ("which word activates which") |
-| `glassbox observe causality` | perturb one vocab dimension mid-computation, measure how far the predicted next-word distribution moves — is the readable state *load-bearing* or decorative? |
-| `glassbox observe demo` | controlled faithfulness check: train v8 on a planted bigram (`next[i] = perm[i]`), then verify the map recovers it |
-| `glassbox observe sweep` | map which (step, word) sites are causally load-bearing vs decorative, across depth |
-| `glassbox observe coverage` | the observability number: fraction of readable active-word sites that are causally load-bearing, with robustness across τ thresholds |
-| `glassbox observe induction` | beyond-bigram check: train on in-context key→value pairs and test query-position recall against bigram chance *and* the key-free-copier ceiling |
+| `vitrum observe trace` | top-k active words in the register state after each step, for a prompt — watch a prediction form |
+| `vitrum observe wordmap` | for v8, the learned word→word interaction matrix `W = U@Vᵀ + diag(d)` ("which word activates which") |
+| `vitrum observe causality` | perturb one vocab dimension mid-computation, measure how far the predicted next-word distribution moves — is the readable state *load-bearing* or decorative? |
+| `vitrum observe demo` | controlled faithfulness check: train v8 on a planted bigram (`next[i] = perm[i]`), then verify the map recovers it |
+| `vitrum observe sweep` | map which (step, word) sites are causally load-bearing vs decorative, across depth |
+| `vitrum observe coverage` | the observability number: fraction of readable active-word sites that are causally load-bearing, with robustness across τ thresholds |
+| `vitrum observe induction` | beyond-bigram check: train on in-context key→value pairs and test query-position recall against bigram chance *and* the key-free-copier ceiling |
 
-**Faithfulness result (the central claim, tested).** On the planted-bigram demo, the recovered map `argmax_j W[i,j]` matches the true `perm[i]` for **100% of words** (chance ≈ 3%) — in this controlled setting, reading the weights tells the truth. The open questions are whether that readability holds on real text and at scale, and whether the states are causally load-bearing (run `glassbox observe causality` on a trained checkpoint to check). This is the actual research frontier — not the bits-per-byte score.
+**Faithfulness result (the central claim, tested).** On the planted-bigram demo, the recovered map `argmax_j W[i,j]` matches the true `perm[i]` for **100% of words** (chance ≈ 3%) — in this controlled setting, reading the weights tells the truth. The open questions are whether that readability holds on real text and at scale, and whether the states are causally load-bearing (run `vitrum observe causality` on a trained checkpoint to check). This is the actual research frontier — not the bits-per-byte score.
 
 ## What We've Found So Far
 
@@ -99,7 +103,7 @@ Adding the embedding drops bpb **3.24 → 2.37 (≈0.87 bpb)** and closes ~43% o
 
 ### Width sweep (2026-06): under revision
 
-The hypothesis: scaling v8's interaction **rank** improves bits-per-byte and causal coverage (`glassbox observe coverage`: the fraction of readable active-word sites that are causally load-bearing) at the same time. The committed sweep artifacts (`artifacts/rank{8,16,32,64}_manifest.json`; 165 steps, ~300 s wall-clock, 3 GPUs per run) do not support it yet:
+The hypothesis: scaling v8's interaction **rank** improves bits-per-byte and causal coverage (`vitrum observe coverage`: the fraction of readable active-word sites that are causally load-bearing) at the same time. The committed sweep artifacts (`artifacts/rank{8,16,32,64}_manifest.json`; 165 steps, ~300 s wall-clock, 3 GPUs per run) do not support it yet:
 
 | v8 width | params | train loss | val_bpb |
 |---|---|---|---|
@@ -109,6 +113,19 @@ The hypothesis: scaling v8's interaction **rank** improves bits-per-byte and cau
 | rank 64 | 1.08M | 0.87 | 0.47 |
 
 bpb is not monotone in rank, and the rank-64 run is a memorization/leakage signal (0.47 bpb would beat the Parameter Golf record by more than 2×), echoing the rank-64 memorization in the historical run below. A previous version of this section claimed bpb falling monotonically 3.46 → 2.88 through rank 128, coverage rising 50% → 87%, and "no memorization at any rank"; those numbers match no committed manifest and no rank-128 artifact exists, so they are **under revision** (methodology corrected 2026-06-09) — full audit note in [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md). `scripts/rank_sweep.sh` regenerates the sweep with manifests at three seeds.
+
+### Beyond bigram: the induction test
+
+`vitrum observe induction` trains a variant on in-context key→value pairs. Each sequence has its own random map, so fixed weights cannot memorize it: only looking back at the context solves the query positions.
+
+| `MODEL_VERSION` | Query-position accuracy | Chance (bigram ceiling) | Key-free copier ceiling |
+|---|---|---|---|
+| `v8_lowrank_vv` | 1.6% | 2.1% | ~10.0% |
+| `v9_linattn` | 2.3% | 2.1% | ~10.0% |
+
+Both readable linear-attention variants sit at chance. They do no keyed in-context lookback, so what the observability tooling reads in them is a bigram-class mechanism. This is a known limit of linear attention, not necessarily of vocabulary-space state. `v1_shared_attn` (softmax attention, where induction heads form) cannot be probed yet because it shares one block in a loop and exposes no per-step state hook.
+
+Reproduce on CPU with default settings (a few minutes each): `vitrum observe induction --version v8_lowrank_vv`. First reported in PR #13 (2026-06-01) and re-run with identical results on 2026-10-10. No manifest is committed for this probe.
 
 ### What these results mean
 
@@ -192,28 +209,28 @@ Names describe mechanism, not metaphor.
 ```bash
 # Setup on RunPod (installs into system Python, so a GPU image's
 # preinstalled torch satisfies the dependency and is left alone)
-curl -sSL https://raw.githubusercontent.com/urmzd/glassbox-lm/main/setup.sh | bash
+curl -sSL https://raw.githubusercontent.com/urmzd/vitrum/main/setup.sh | bash
 
 # Or manually — creates .venv with every workspace package (torch included);
 # prefix commands with `uv run` or activate the venv first
 uv sync
-glassbox data download --variant sp1024
+vitrum data download --variant sp1024
 
 # Train the best model (low-rank V x V, rank 8)
 INTERACTION_RANK=8 MODEL_VERSION=v8_lowrank_vv \
-  torchrun --standalone --nproc_per_node=$(nvidia-smi -L | wc -l) -m glassbox_lm.training
+  torchrun --standalone --nproc_per_node=$(nvidia-smi -L | wc -l) -m vitrum.training
 
 # List every discovered architecture (with metadata)
-glassbox list
+vitrum list
 
 # Benchmark all models
-glassbox benchmark
+vitrum benchmark
 
 # Benchmark specific models
-glassbox benchmark --versions v8_lowrank_vv,v2_conv,v14_data_dependent --minutes 10
+vitrum benchmark --versions v8_lowrank_vv,v2_conv,v14_data_dependent --minutes 10
 ```
 
-All hyperparameters configurable via environment variables. See `glassbox_lm.core.config`.
+All hyperparameters configurable via environment variables. See `vitrum.core.config`.
 
 ## What We've Learned
 

@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from glassbox_lm.core.config import Hyperparameters
+from vitrum.core.config import Hyperparameters
 
 
 def test_defaults():

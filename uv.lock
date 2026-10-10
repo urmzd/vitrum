@@ -8,12 +8,12 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "glassbox-lm",
-    "glassbox-lm-architectures",
-    "glassbox-lm-cli",
-    "glassbox-lm-core",
-    "glassbox-lm-data",
-    "glassbox-lm-training",
+    "vitrum",
+    "vitrum-architectures",
+    "vitrum-cli",
+    "vitrum-core",
+    "vitrum-data",
+    "vitrum-training",
 ]
 
 [[package]]
@@ -117,127 +117,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/51/7c/f60c259dcbf4f0c47cc4ddb8f7720d2dcdc8888c8e5ad84c73ea4531cc5b/fsspec-2026.2.0.tar.gz", hash = "sha256:6544e34b16869f5aacd5b90bdf1a71acb37792ea3ddf6125ee69a22a53fb8bff", size = 313441, upload-time = "2026-02-05T21:50:53.743Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e6/ab/fb21f4c939bb440104cc2b396d3be1d9b7a9fd3c6c2a53d98c45b3d7c954/fsspec-2026.2.0-py3-none-any.whl", hash = "sha256:98de475b5cb3bd66bedd5c4679e87b4fdfe1a3bf4d707b151b3c07e58c9a2437", size = 202505, upload-time = "2026-02-05T21:50:51.819Z" },
-]
-
-[[package]]
-name = "glassbox-lm"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "glassbox-lm-cli" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "glassbox-lm-cli", editable = "apps/cli" }]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=8" },
-    { name = "ruff", specifier = ">=0.8" },
-]
-
-[[package]]
-name = "glassbox-lm-architectures"
-version = "0.1.0"
-source = { editable = "libs/architectures" }
-dependencies = [
-    { name = "glassbox-lm-core" },
-    { name = "pydantic-settings" },
-    { name = "torch" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "glassbox-lm-core", editable = "libs/core" },
-    { name = "pydantic-settings", specifier = ">=2.13.1" },
-    { name = "torch", specifier = ">=2.4" },
-]
-
-[[package]]
-name = "glassbox-lm-cli"
-version = "0.1.0"
-source = { editable = "apps/cli" }
-dependencies = [
-    { name = "glassbox-lm-architectures" },
-    { name = "glassbox-lm-core" },
-    { name = "glassbox-lm-data" },
-    { name = "glassbox-lm-training" },
-    { name = "torch" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "glassbox-lm-architectures", editable = "libs/architectures" },
-    { name = "glassbox-lm-core", editable = "libs/core" },
-    { name = "glassbox-lm-data", editable = "libs/data" },
-    { name = "glassbox-lm-training", editable = "libs/training" },
-    { name = "torch", specifier = ">=2.4" },
-]
-
-[[package]]
-name = "glassbox-lm-core"
-version = "0.1.0"
-source = { editable = "libs/core" }
-dependencies = [
-    { name = "numpy" },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "torch" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "numpy" },
-    { name = "pydantic", specifier = ">=2" },
-    { name = "pydantic-settings", specifier = ">=2.13.1" },
-    { name = "torch", specifier = ">=2.4" },
-]
-
-[[package]]
-name = "glassbox-lm-data"
-version = "0.1.0"
-source = { editable = "libs/data" }
-dependencies = [
-    { name = "huggingface-hub" },
-    { name = "numpy" },
-]
-
-[package.optional-dependencies]
-prepare = [
-    { name = "sentencepiece" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "huggingface-hub" },
-    { name = "numpy" },
-    { name = "sentencepiece", marker = "extra == 'prepare'" },
-]
-provides-extras = ["prepare"]
-
-[[package]]
-name = "glassbox-lm-training"
-version = "0.1.0"
-source = { editable = "libs/training" }
-dependencies = [
-    { name = "glassbox-lm-core" },
-    { name = "numpy" },
-    { name = "sentencepiece" },
-    { name = "torch" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "glassbox-lm-core", editable = "libs/core" },
-    { name = "numpy" },
-    { name = "sentencepiece" },
-    { name = "torch", specifier = ">=2.4" },
 ]
 
 [[package]]
@@ -1167,4 +1046,125 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/55/e3/70399cb7dd41c10ac53367ae42139cf4b1ca5f36bb3dc6c9d33acdb43655/typing_inspection-0.4.2.tar.gz", hash = "sha256:ba561c48a67c5958007083d386c3295464928b01faa735ab8547c5692e87f464", size = 75949, upload-time = "2025-10-01T02:14:41.687Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/dc/9b/47798a6c91d8bdb567fe2698fe81e0c6b7cb7ef4d13da4114b41d239f65d/typing_inspection-0.4.2-py3-none-any.whl", hash = "sha256:4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7", size = 14611, upload-time = "2025-10-01T02:14:40.154Z" },
+]
+
+[[package]]
+name = "vitrum"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "vitrum-cli" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "vitrum-cli", editable = "apps/cli" }]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8" },
+    { name = "ruff", specifier = ">=0.8" },
+]
+
+[[package]]
+name = "vitrum-architectures"
+version = "0.1.0"
+source = { editable = "libs/architectures" }
+dependencies = [
+    { name = "pydantic-settings" },
+    { name = "torch" },
+    { name = "vitrum-core" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic-settings", specifier = ">=2.13.1" },
+    { name = "torch", specifier = ">=2.4" },
+    { name = "vitrum-core", editable = "libs/core" },
+]
+
+[[package]]
+name = "vitrum-cli"
+version = "0.1.0"
+source = { editable = "apps/cli" }
+dependencies = [
+    { name = "torch" },
+    { name = "vitrum-architectures" },
+    { name = "vitrum-core" },
+    { name = "vitrum-data" },
+    { name = "vitrum-training" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "torch", specifier = ">=2.4" },
+    { name = "vitrum-architectures", editable = "libs/architectures" },
+    { name = "vitrum-core", editable = "libs/core" },
+    { name = "vitrum-data", editable = "libs/data" },
+    { name = "vitrum-training", editable = "libs/training" },
+]
+
+[[package]]
+name = "vitrum-core"
+version = "0.1.0"
+source = { editable = "libs/core" }
+dependencies = [
+    { name = "numpy" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "numpy" },
+    { name = "pydantic", specifier = ">=2" },
+    { name = "pydantic-settings", specifier = ">=2.13.1" },
+    { name = "torch", specifier = ">=2.4" },
+]
+
+[[package]]
+name = "vitrum-data"
+version = "0.1.0"
+source = { editable = "libs/data" }
+dependencies = [
+    { name = "huggingface-hub" },
+    { name = "numpy" },
+]
+
+[package.optional-dependencies]
+prepare = [
+    { name = "sentencepiece" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "huggingface-hub" },
+    { name = "numpy" },
+    { name = "sentencepiece", marker = "extra == 'prepare'" },
+]
+provides-extras = ["prepare"]
+
+[[package]]
+name = "vitrum-training"
+version = "0.1.0"
+source = { editable = "libs/training" }
+dependencies = [
+    { name = "numpy" },
+    { name = "sentencepiece" },
+    { name = "torch" },
+    { name = "vitrum-core" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "numpy" },
+    { name = "sentencepiece" },
+    { name = "torch", specifier = ">=2.4" },
+    { name = "vitrum-core", editable = "libs/core" },
 ]

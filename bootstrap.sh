@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Bootstrap glassbox-lm on RunPod from scratch
-# Usage: curl -sSL https://raw.githubusercontent.com/urmzd/glassbox-lm/main/bootstrap.sh | bash
+# Bootstrap vitrum on RunPod from scratch
+# Usage: curl -sSL https://raw.githubusercontent.com/urmzd/vitrum/main/bootstrap.sh | bash
 set -euo pipefail
 
 cd /workspace
 
 # Clone repo
-[ -d glassbox-lm ] || git clone https://github.com/urmzd/glassbox-lm.git
-cd glassbox-lm
+[ -d vitrum ] || git clone https://github.com/urmzd/vitrum.git
+cd vitrum
 
 # Install uv
 if ! command -v uv &>/dev/null; then
@@ -24,14 +24,14 @@ uv pip install --system \
     -e libs/core -e libs/architectures -e libs/data -e libs/training -e apps/cli
 
 # Download data
-glassbox data download --variant sp1024
+vitrum data download --variant sp1024
 
 echo ""
 echo "=== Ready ==="
-echo "cd /workspace/glassbox-lm"
+echo "cd /workspace/vitrum"
 echo ""
 echo "# Run v8_lowrank_vv (best variant so far):"
 echo "MODEL_VERSION=v8_lowrank_vv INTERACTION_RANK=8 \\"
 echo "TRAIN_BATCH_TOKENS=491520 GRAD_ACCUM_STEPS=16 \\"
 echo "TRAIN_LOG_EVERY=10 RUN_ID=v8_run \\"
-echo "torchrun --standalone --nproc_per_node=\$(nvidia-smi -L | wc -l) -m glassbox_lm.training"
+echo "torchrun --standalone --nproc_per_node=\$(nvidia-smi -L | wc -l) -m vitrum.training"
