@@ -70,6 +70,67 @@ Two limits keep this from being a free lunch:
   if the model does something a bigram cannot — multi-hop, contextual,
   compositional prediction — **and stays readable through it.**
 
+## Beyond bigram: the induction test
+
+The second limit above is testable. `vitrum observe induction` trains a variant
+on in-context key→value pairs where every sequence has its own random map, so
+fixed weights sit at chance on the query positions and only in-context lookback
+solves the task. Default settings on CPU:
+
+| `MODEL_VERSION` | Query-position accuracy | Chance (bigram ceiling) | Key-free copier ceiling |
+|---|---|---|---|
+| `v8_lowrank_vv` | 1.6% | 2.1% | ~10.0% |
+| `v9_linattn` | 2.3% | 2.1% | ~10.0% |
+
+Both readable linear-attention variants are at chance: they are bigram-class.
+Their observability is real, but it is observability of a simple mechanism,
+which is the near-trivial case described above. Exact in-context recall is a
+known limit of *linear* attention, not necessarily of vocabulary-space state.
+The open follow-up is a readable model that can do hard computation, which
+likely needs softmax attention plus tooling to probe weight-shared loops:
+`v1_shared_attn` shares one block in a loop, so the state-capture hook has no
+per-step module to attach to.
+
+First reported in PR #13 (2026-06-01), re-run with identical results on
+2026-10-10. No manifest is committed for this probe; the command above
+regenerates it in a few minutes per variant.
+
+## The post-hoc alternative: the Jacobian lens
+
+This document says the approach "cannot be applied post-hoc" to an existing
+opaque model. In July 2026 Anthropic published a method that does a version of
+that: the Jacobian lens (Gurnee, Sofroniew, Lindsey et al., "Verbalizable
+Representations Form a Global Workspace in Language Models",
+<https://transformer-circuits.pub/2026/workspace/index.html>; code at
+<https://github.com/anthropics/jacobian-lens>).
+
+For each layer it averages the Jacobian from that layer's residual stream to
+the final layer over a text corpus, then decodes with the model's own
+unembedding: `lens_l(h) = unembed(J_l @ h)`. The logit lens is the special case
+`J_l = I`, and the identity read used throughout this repo is that special case
+made exact by construction.
+
+What the paper reports, and what it means here:
+
+- **Vocabulary coordinates are a natural basis for the variables that matter.**
+  The lens surfaces intermediate values of multi-step reasoning in mid layers
+  of production models, and swapping them changes the answer. That supports the
+  premise of this project.
+- **Most of the computation is not in that basis.** The vocabulary-aligned
+  component never exceeds about 10% of activation variance. Forcing 100% of the
+  state into vocabulary space, as every readable variant here does, is a
+  plausible source of the ~0.87 bpb gap to `v13_with_embedding`. That link is a
+  hypothesis of this repo, not a claim of the paper.
+- **It reads variables, not rules.** The lens gives a bag of single-token
+  concepts per position. It does not give a readable weight matrix. v8's
+  word→word map `W` is still something only a by-construction design offers.
+- **It costs no performance,** because it is applied to the opaque model as is.
+
+A cheap comparison this repo can run: fit the lens on `v13_with_embedding` and
+compare its readouts against identity reads on `v12_vocab_slice` (same body) on
+tasks with known intermediates. That tests by-construction against post-hoc
+readability directly.
+
 ## Why the goal is "observability at *no cost*"
 
 The two limits above force the real objective: a model that is **both** as good as
@@ -81,7 +142,8 @@ the opaque `v13` baseline as a gap to *eliminate*, not a price to pay.
 
 One more limit worth stating plainly: this is a way to *build* observable models,
 not to crack open an existing opaque one. It cannot be applied post-hoc to GPT-4 —
-the architecture has to be designed this way. The bet is that capable models can
+the architecture has to be designed this way. (For what post-hoc methods can now
+read, see [the Jacobian lens](#the-post-hoc-alternative-the-jacobian-lens).) The bet is that capable models can
 be observable *from the start*.
 
 ## Width sweep (2026-06): what the committed evidence supports

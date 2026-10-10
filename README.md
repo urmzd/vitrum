@@ -17,6 +17,8 @@
 
 > **Name:** Vitrum is Latin for glass. This repo was previously `glassbox-lm`; GitHub redirects the old URL.
 
+> **Status: paused since July 2026.** The readable variants probed so far are bigram-class: `v8_lowrank_vv` and `v9_linattn` score at chance on in-context key→value recall (see [Beyond bigram](#beyond-bigram-the-induction-test)). The tooling and the framing stand; the architectures do not yet do computation that is hard to read. Post-hoc work such as Anthropic's Jacobian lens now reads vocabulary-space variables out of opaque models directly (see [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md#the-post-hoc-alternative-the-jacobian-lens)).
+
 The problem these experiments attack: frontier language models are **billions of opaque parameters with no faithful way to see how they compute** or to link internal activity to meaning. The goal here is **observability at no performance cost** — architectures (and the tooling around them) where you can see *how the computation works* **without giving up the quality of an opaque model**. Observability that costs accuracy isn't the win; observability that's *free* is. (Whether you can drop embeddings was never the question — opacity at scale is.) For the precise problem — why readable *I/O* isn't it, and the honest catches — see [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md).
 
 ## What This Is
@@ -111,6 +113,19 @@ The hypothesis: scaling v8's interaction **rank** improves bits-per-byte and cau
 | rank 64 | 1.08M | 0.87 | 0.47 |
 
 bpb is not monotone in rank, and the rank-64 run is a memorization/leakage signal (0.47 bpb would beat the Parameter Golf record by more than 2×), echoing the rank-64 memorization in the historical run below. A previous version of this section claimed bpb falling monotonically 3.46 → 2.88 through rank 128, coverage rising 50% → 87%, and "no memorization at any rank"; those numbers match no committed manifest and no rank-128 artifact exists, so they are **under revision** (methodology corrected 2026-06-09) — full audit note in [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md). `scripts/rank_sweep.sh` regenerates the sweep with manifests at three seeds.
+
+### Beyond bigram: the induction test
+
+`vitrum observe induction` trains a variant on in-context key→value pairs. Each sequence has its own random map, so fixed weights cannot memorize it: only looking back at the context solves the query positions.
+
+| `MODEL_VERSION` | Query-position accuracy | Chance (bigram ceiling) | Key-free copier ceiling |
+|---|---|---|---|
+| `v8_lowrank_vv` | 1.6% | 2.1% | ~10.0% |
+| `v9_linattn` | 2.3% | 2.1% | ~10.0% |
+
+Both readable linear-attention variants sit at chance. They do no keyed in-context lookback, so what the observability tooling reads in them is a bigram-class mechanism. This is a known limit of linear attention, not necessarily of vocabulary-space state. `v1_shared_attn` (softmax attention, where induction heads form) cannot be probed yet because it shares one block in a loop and exposes no per-step state hook.
+
+Reproduce on CPU with default settings (a few minutes each): `vitrum observe induction --version v8_lowrank_vv`. First reported in PR #13 (2026-06-01) and re-run with identical results on 2026-10-10. No manifest is committed for this probe.
 
 ### What these results mean
 
