@@ -1,29 +1,29 @@
 [project]
-name = "glassbox-lm-cli"
+name = "vitrum-cli"
 version = "0.1.0"
-description = "glassbox: the Glassbox LM command line (list, train, benchmark, observe, results, microbench, data)"
+description = "vitrum: the Vitrum command line (list, train, benchmark, observe, results, microbench, data)"
 license = "Apache-2.0"
 requires-python = ">=3.11"
 dependencies = [
-    "glassbox-lm-architectures",
-    "glassbox-lm-core",
-    "glassbox-lm-data",
-    "glassbox-lm-training",
+    "vitrum-architectures",
+    "vitrum-core",
+    "vitrum-data",
+    "vitrum-training",
     "torch>=2.4",
 ]
 
 [project.scripts]
-glassbox = "glassbox_lm.cli:main"
+vitrum = "vitrum.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.8.3,<0.9"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = "glassbox_lm.cli"
+module-name = "vitrum.cli"
 
 [tool.uv.sources]
-glassbox-lm-architectures = { workspace = true }
-glassbox-lm-core = { workspace = true }
-glassbox-lm-data = { workspace = true }
-glassbox-lm-training = { workspace = true }
+vitrum-architectures = { workspace = true }
+vitrum-core = { workspace = true }
+vitrum-data = { workspace = true }
+vitrum-training = { workspace = true }

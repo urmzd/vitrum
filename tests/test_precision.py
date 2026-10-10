@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from glassbox_lm.core.quantize import is_control_tensor
-from glassbox_lm.core.registry import get_registry, build_model
+from vitrum.core.quantize import is_control_tensor
+from vitrum.core.registry import get_registry, build_model
 from tests.test_models import _SMALL_ARGS
 
 

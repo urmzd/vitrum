@@ -5,7 +5,7 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from glassbox_lm.core.eval import build_sentencepiece_luts, eval_val
+from vitrum.core.eval import build_sentencepiece_luts, eval_val
 
 
 class FakeSentencePiece:

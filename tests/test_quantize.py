@@ -1,6 +1,6 @@
 import torch
 
-from glassbox_lm.core.quantize import dequantize_state_dict_int8, quantize_state_dict_int8
+from vitrum.core.quantize import dequantize_state_dict_int8, quantize_state_dict_int8
 
 
 def test_roundtrip():
