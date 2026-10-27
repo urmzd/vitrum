@@ -1,53 +1,156 @@
 <p align="center">
   <h1 align="center">Vitrum</h1>
   <p align="center">
-    A testbed for <em>observable</em> language models: hidden dimension equals vocabulary size, so every register state is a readable distribution over words. Built to understand how the computation works, not to win a benchmark.
+    A testbed for <em>observable</em> language models: hidden dimension equals vocabulary size, so every register state is a readable distribution over words.
     <br /><br />
-    <a href="#quick-start">Quick Start</a>
+    <a href="#installation">Install</a>
     &middot;
     <a href="https://github.com/urmzd/vitrum/issues">Report Bug</a>
     &middot;
-    <a href="#model-versions">Model Versions</a>
+    <a href="docs/README.md">Docs</a>
   </p>
 </p>
 
 <p align="center">
+  <a href="https://github.com/urmzd/vitrum/actions/workflows/ci.yml"><img src="https://github.com/urmzd/vitrum/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  &nbsp;
   <a href="LICENSE"><img src="https://img.shields.io/github/license/urmzd/vitrum" alt="License"></a>
 </p>
 
-> **Name:** Vitrum is Latin for glass. This repo was previously `glassbox-lm`; GitHub redirects the old URL.
+> **Status: paused since July 2026.** The readable variants probed so far are bigram-class: `v8_lowrank_vv` and `v9_linattn` score at chance on in-context key→value recall (see [Beyond bigram](#beyond-bigram-the-induction-test)). The tooling and framing stand; the architectures do not yet do computation that is hard to read. Post-hoc work such as Anthropic's Jacobian lens now reads vocabulary-space variables out of opaque models directly (see [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md#the-post-hoc-alternative-the-jacobian-lens)).
 
-> **Status: paused since July 2026.** The readable variants probed so far are bigram-class: `v8_lowrank_vv` and `v9_linattn` score at chance on in-context key→value recall (see [Beyond bigram](#beyond-bigram-the-induction-test)). The tooling and the framing stand; the architectures do not yet do computation that is hard to read. Post-hoc work such as Anthropic's Jacobian lens now reads vocabulary-space variables out of opaque models directly (see [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md#the-post-hoc-alternative-the-jacobian-lens)).
+Vitrum is Latin for glass. The repo was previously `glassbox-lm`; GitHub redirects the old URL.
 
-The problem these experiments attack: frontier language models are **billions of opaque parameters with no faithful way to see how they compute** or to link internal activity to meaning. The goal here is **observability at no performance cost**: architectures (and the tooling around them) where you can see *how the computation works* **without giving up the quality of an opaque model**. Observability that costs accuracy isn't the win; observability that's *free* is. (Whether you can drop embeddings was never the question; opacity at scale is.) For the precise problem (why readable *I/O* isn't it, and the honest catches), see [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md).
+The goal is **observability at no performance cost**: architectures where you can see how the computation works without giving up the quality of an opaque model. A readable model has to match the opaque baseline (`v13_with_embedding`) to make the point. For why readable I/O alone is not the answer, see [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md).
 
-## What This Is
+## Features
 
-A testbed for **observable language models that don't trade away performance**. The aim is to *understand how they operate* **and** match what an opaque model achieves. The motivation is the opacity of modern LMs: billions of parameters, no faithful way to trace what the computation does or to link one internal representation to the next.
+- **Vocabulary-space state**: hidden dimension equals vocab size, with no learned embedding and no output projection. The register state is a distribution over words at every step.
+- **Interpretability by construction**: read each intermediate state as "which words are active and how strongly" and watch a prediction form across recurrent steps, with no post-hoc probing.
+- **Causal observability tooling**: `vitrum observe` traces states, reads learned word→word maps, and measures which readable sites are causally load-bearing.
+- **A zoo of 16 readable variants plus an opaque baseline**: conv, linear attention, low-rank V x V, op-banks, hard routing, and Mamba/RWKV/Hyena-style dynamics, all sharing one skeleton and auto-discovered by a registry.
+- **Budget-matched benchmarking**: `vitrum benchmark` trains each version under an identical wall-clock budget and records seed, git SHA, GPU, and full config in a manifest.
+- **Parameter Golf ready**: the training loop emits the int8 + zlib artifact that [OpenAI's Parameter Golf](https://github.com/openai/parameter-golf) scores.
 
-The approach keeps everything in **vocabulary space**: every architecture shares one mechanism (**hidden dimension = vocab size**, no learned embedding, no output projection), so the register state IS a distribution over words at every step. You can read each intermediate state as "which words are active and how strongly," and watch a prediction form across recurrent steps. Interpretability by construction, not post-hoc probing.
+## Installation
 
-To be clear about the bar: this is **performance *and* observability: observability at no cost.** Not a leaderboard chase for its own sake, but a readable model has to *match* an opaque one (`v13_with_embedding`) to make the point: observability that costs accuracy proves nothing; observability that's free is the result worth having. See [Observing the computation](#observing-the-computation).
+### Prerequisites
 
-## Observing the computation
+| Requirement | Version |
+|-------------|---------|
+| Python | >= 3.11 |
+| [uv](https://docs.astral.sh/uv/) | any recent |
+| NVIDIA GPU + CUDA | for training and `vitrum benchmark` (observability tools run on CPU) |
 
-The point of word-space states is that you can read the computation directly. [`apps/cli/src/vitrum/cli/observe.py`](apps/cli/src/vitrum/cli/observe.py) (`vitrum observe <cmd>`; `vitrum list` prints every discovered architecture with metadata):
+On a fresh RunPod pod, run the setup script. It installs into system Python, so the image's preinstalled torch is left alone, and downloads the dataset:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/urmzd/vitrum/main/setup.sh | bash
+```
+
+Anywhere else, clone and sync. This creates `.venv` with every workspace package, torch included; prefix commands with `uv run` or activate the venv:
+
+```bash
+git clone https://github.com/urmzd/vitrum.git && cd vitrum
+uv sync
+vitrum data download --variant sp1024
+```
+
+## Quick Start
+
+```bash
+# Train the best model (low-rank V x V, rank 8)
+INTERACTION_RANK=8 MODEL_VERSION=v8_lowrank_vv \
+  torchrun --standalone --nproc_per_node=$(nvidia-smi -L | wc -l) -m vitrum.training
+
+# List every discovered architecture (with metadata)
+vitrum list
+
+# Benchmark all models, or specific ones
+vitrum benchmark
+vitrum benchmark --versions v8_lowrank_vv,v2_conv,v14_data_dependent --minutes 10
+
+# Verify the observability claim on CPU: recover a planted bigram from the weights
+vitrum observe demo
+```
+
+## Usage
+
+### Commands
+
+| Command | What it does |
+|---|---|
+| `vitrum list` | List every architecture visible to the registry |
+| `vitrum train` | Train one model (env-var configured; `--nproc` > 1 wraps torchrun DDP) |
+| `vitrum run-all` | Train every registered architecture sequentially, then print results |
+| `vitrum benchmark` | Run versions under identical wall-clock conditions and compare |
+| `vitrum results` | Aggregate `logs/*_manifest.json` into a results table (mean±std when n > 1) |
+| `vitrum microbench` | Fast CPU forward/backward sanity check (speed, gradients; not trained quality) |
+| `vitrum data` | Dataset commands: `download`, `prepare-code` |
+| `vitrum observe` | Observability toolkit (below) |
+
+### Observing the computation
+
+`vitrum observe` runs on CPU in float32. Most subcommands accept `--version`, `--checkpoint` (a training-run state_dict), and `--tokenizer` (an sp model, to print words instead of ids).
 
 | Command | What it shows |
 |---|---|
-| `vitrum observe trace` | top-k active words in the register state after each step, for a prompt; watch a prediction form |
-| `vitrum observe wordmap` | for v8, the learned word→word interaction matrix `W = U@Vᵀ + diag(d)` ("which word activates which") |
-| `vitrum observe causality` | perturb one vocab dimension mid-computation, measure how far the predicted next-word distribution moves: is the readable state *load-bearing* or decorative? |
-| `vitrum observe demo` | controlled faithfulness check: train v8 on a planted bigram (`next[i] = perm[i]`), then verify the map recovers it |
-| `vitrum observe sweep` | map which (step, word) sites are causally load-bearing vs decorative, across depth |
-| `vitrum observe coverage` | the observability number: fraction of readable active-word sites that are causally load-bearing, with robustness across τ thresholds |
-| `vitrum observe induction` | beyond-bigram check: train on in-context key→value pairs and test query-position recall against bigram chance *and* the key-free-copier ceiling |
+| `vitrum observe trace` | Top-k active words in the register state after each step for a prompt |
+| `vitrum observe wordmap` | For v8, the learned word→word interaction matrix `W = U@Vᵀ + diag(d)` |
+| `vitrum observe causality` | Perturb one vocab dimension mid-computation and measure how far the next-word distribution moves: is the readable state load-bearing or decorative? |
+| `vitrum observe demo` | Train v8 on a planted bigram (`next[i] = perm[i]`) and verify the map recovers it |
+| `vitrum observe sweep` | Map which (step, word) sites are causally load-bearing vs decorative, across depth |
+| `vitrum observe coverage` | The observability number: fraction of readable active-word sites that are causally load-bearing, across τ thresholds |
+| `vitrum observe induction` | Train on in-context key→value pairs and test query-position recall against bigram chance and the key-free-copier ceiling |
 
-**Faithfulness result (the central claim, tested).** On the planted-bigram demo, the recovered map `argmax_j W[i,j]` matches the true `perm[i]` for **100% of words** (chance ≈ 3%). In this controlled setting, reading the weights tells the truth. The open questions are whether that readability holds on real text and at scale, and whether the states are causally load-bearing (run `vitrum observe causality` on a trained checkpoint to check). This is the actual research frontier, not the bits-per-byte score.
+**Faithfulness result.** On the planted-bigram demo, the recovered map `argmax_j W[i,j]` matches the true `perm[i]` for **100% of words** (chance ≈ 3%). The open questions are whether that readability holds on real text and at scale, and whether the states are causally load-bearing (run `vitrum observe causality` on a trained checkpoint).
 
-## What We've Found So Far
+### Model versions
 
-> **Precision note (methodology corrected 2026-06-09):** every table below predates a control-tensor fix. A stray `"weight"` entry in `CONTROL_TENSOR_NAME_PATTERNS` matched every `nn.Linear` weight, so all models except `v8_lowrank_vv` (custom `U`/`V` parameter names) kept fp32 master weights instead of the intended bf16. Forward and backward always ran under bf16 autocast, so the loss/bpb numbers stay comparable, but parameter memory, `raw_bytes`, and optimizer-state size were not uniform across models. Numbers are kept as published; re-run under the corrected regime before citing memory figures or close margins.
+Select a variant with `MODEL_VERSION`. Every variant repeats N steps of cross-position mixing then within-position transform on a one-hot register state, with no embedding and no output projection. Names describe mechanism, not metaphor.
+
+| `MODEL_VERSION` | Cross-position | Within-position | Notes |
+|---|---|---|---|
+| `v1_shared_attn` | GQA + RoPE (weights shared across depth) | Fourier-parameterized channel mix | 3.4M params, plateaus early |
+| `v2_conv` | Depthwise causal 1D conv | Fourier-parameterized channel mix | 353K params, strong baseline |
+| `v3_fourier_linattn` | Linear attn with causal decay; Q/K/V/O via Fourier basis | Fourier-parameterized channel mix | Stuck: Fourier parameterization bottleneck |
+| `v4_weight_shared` | Shared Q/K + per-head decay (v3 body) | Factored (diag + low-rank) channel mix | Size-reduction ablation of v3 |
+| `v5_fft_linattn` | Linear attn with causal decay; Q/K/V/O via rFFT | FFT-based channel mix | Same Fourier-over-vocab caveat |
+| `v6_banded_fourier` | Band-partitioned Fourier linattn, gated coupling | Three parallel band projections, gated | 824K, still descending |
+| `v7_soft_ops` | Linear attn with causal decay | Gumbel-soft op-bank + soft register addressing | Unstable, loss spikes |
+| `v8_lowrank_vv` | Diagonal Q/K linear attn, activation similarity | Low-rank V x V (`U @ V^T + diag`) | **Best architecture** at rank 8 (historical run); 2026-06 width-sweep claims under revision |
+| `v9_linattn` | Linear attn with causal decay (dense projections) | MLP bottleneck | 4.2M params, best non-attention variant |
+| `v10_state_cond_op` | Linear attn in compressed state space | State-conditioned soft read/op/write dispatch | Untested |
+| `v11a_mixed_ops` | High-decay EMA + linear-attn | Sigmoid gate, dense layer, low-decay EMA | Trains; bf16 `arange` position bug fixed (2026-05) |
+| `v11b_hard_routing` | Multi-timescale linear attn | Gumbel-hard op routing + PonderNet halting | Untested |
+| `v12_vocab_slice` | Causal decay in fixed k-dim slice | MLP in k-dim slice | Best on target corpus (3.19 bpb, 2026-05); slices are deterministic vocab-id windows |
+| `v14_data_dependent` | Input-modulated conv (Hyena) | Data-dependent decay (Mamba), DCT mix | Mamba / RWKV / Hyena bundle; bf16 dtype bug fixed (2026-05) |
+| `v15_aux_loss` | v12 body + per-step CE + top-k sparsity | Entropy-adaptive write scaling | Training-side additions on v12 |
+| `v16_multi_branch` | Per-column decay memory | Branched gated MLP + cross-column inhibition | Ensemble + gated branches |
+| `v13_with_embedding` | v12 body | v12 body | **Opaque baseline, comparison only.** Adds `Embedding(V, d) -> Linear(d, V)` to measure what readability costs. Not a template. |
+
+## Configuration
+
+Every hyperparameter is an environment variable read by the `Hyperparameters` class in `vitrum.core.config`. Override at runtime; do not edit defaults.
+
+| Variable | Default | Notes |
+|---|---|---|
+| `MODEL_VERSION` | `v8_lowrank_vv` | Which variant to train |
+| `INTERACTION_RANK` | 8 | Rank of the v8 interaction matrix |
+| `NUM_STEPS` | 8 | Recurrent steps / depth |
+| `SEED` | 1337 | RNG seed; recorded in the manifest |
+| `LR` | 0.03 | Adam learning rate |
+| `TRAIN_BATCH_TOKENS` | 524288 | Global batch size in tokens |
+| `GRAD_ACCUM_STEPS` | 16 | Gradient accumulation |
+| `ITERATIONS` | 500 | Max training iterations |
+| `MAX_WALLCLOCK_SECONDS` | none | Wall-clock limit; set it manually |
+| `VAL_MAX_TOKENS` | 0 | Cap validation tokens (0 = full set, required for a faithful bpb score) |
+
+The full table, including per-variant knobs, is in [AGENTS.md](AGENTS.md#key-env-vars).
+
+## Results
+
+> **Precision note (methodology corrected 2026-06-09):** every table below predates a control-tensor fix. A stray `"weight"` entry in `CONTROL_TENSOR_NAME_PATTERNS` matched every `nn.Linear` weight, so all models except `v8_lowrank_vv` (custom `U`/`V` parameter names) kept fp32 master weights instead of bf16. Forward and backward always ran under bf16 autocast, so loss and bpb stay comparable, but parameter memory, `raw_bytes`, and optimizer-state size were not uniform. Re-run under the corrected regime before citing memory figures or close margins.
 
 ### Historical benchmark (10 min, 3× A40, batch 491,520 tokens)
 
@@ -61,9 +164,11 @@ The point of word-space states is that you can read the computation directly. [`
 | v3_fourier_linattn | Linear attn with causal decay (Fourier proj) | 329K | 397 | 6.81 | 4.03 | 326K | Stuck |
 | v8_lowrank_vv (rank 64) | Recurrent rank-r V x V linear layer | 1.1M | 188 | n/a | n/a | 270K | Memorized (train 0.04, overfitting) |
 
-### Head-to-head on the target corpus (1× RTX 4090, identical 720s train budget, 2026-05-31)
+On this run, v8 at rank 8 beat v2_conv with half the parameters in one-fifth the steps, with an essentially zero train/val gap. This is still far from useful: 3.10 bpb versus ~0.93 for GPT-2 at 124M params.
 
-Re-run on this project's actual target data (`willdepueoai/parameter-golf`, FineWeb sp1024) under a single budget-matched config (batch 491,520, 20 warmup steps, flat LR, grad-clip 1.0, 720s wall-clock cap):
+### Head-to-head on the target corpus (1× RTX 4090, identical 720s budget, 2026-05-31)
+
+Re-run on the target data (`willdepueoai/parameter-golf`, FineWeb sp1024) with one budget-matched config (batch 491,520, 20 warmup steps, flat LR, grad-clip 1.0, 720s cap):
 
 | `MODEL_VERSION` | Params | Steps | val_loss | val_bpb |
 |---|---|---|---|---|
@@ -71,39 +176,37 @@ Re-run on this project's actual target data (`willdepueoai/parameter-golf`, Fine
 | v14_data_dependent | 2.54M | 211 | 5.685 | 3.367 |
 | v8_lowrank_vv (rank 8) | 0.16M | 229 | 5.984 | 3.544 |
 
-On this corpus and an equal budget the ranking **inverts** the historical table: `v12_vocab_slice` wins on absolute bpb, while `v8_lowrank_vv` leads only on a *per-parameter* basis (25× smaller for +0.36 bpb). All three descended monotonically with no instability. Caveat: this is roughly **1/30th** of the Parameter Golf compute budget (1× RTX 4090 ≈ 12 min vs 8× H100 ≈ 10 min), so these are undertrained floors, not ceilings.
+The ranking **inverts** the historical table: `v12_vocab_slice` wins on absolute bpb, while `v8_lowrank_vv` leads only per parameter (25× smaller for +0.36 bpb). All three descended monotonically. This is roughly **1/30th** of the Parameter Golf compute budget, so these are undertrained floors, not ceilings.
 
-### Where this lands on Parameter Golf
+### Parameter Golf standing
 
-Used here as a **raw-capability yardstick, not the project's goal** (the goal is interpretability/observability; see *What's actually unique here*). [OpenAI's Parameter Golf](https://github.com/openai/parameter-golf): the best LM in a **16 MB artifact** (code + compressed weights), trained in **under 10 min on 8× H100**, scored by **tokenizer-agnostic bits-per-byte** on the FineWeb validation set. The training loop already emits the int8 + zlib artifact this competition scores.
+Parameter Golf is used as a **raw-capability yardstick, not the goal**: the best LM in a **16 MB artifact**, trained in **under 10 min on 8× H100**, scored by tokenizer-agnostic bits-per-byte on FineWeb validation.
 
 | | bits-per-byte |
 |---|---|
 | Best verified leaderboard record (2026-05) | **~1.061** |
 | Naive baseline (9-layer, 512-dim transformer) | **1.2244** |
-| Published "best readable" claim (`v8_lowrank_vv` rank 128, 2026-06 width sweep) | 2.88, under revision (methodology corrected 2026-06-09: matches no committed manifest; see [Width sweep](#width-sweep-2026-06-under-revision)) |
+| Published "best readable" claim (`v8_lowrank_vv` rank 128, 2026-06) | 2.88, under revision (see [Width sweep](#width-sweep-2026-06-under-revision)) |
 | Best readable result here (`v12_vocab_slice`, 2026-05 head-to-head) | **3.19** |
 
-We are **~2.6× worse than even the naive baseline**. As-is, nothing here lands on the leaderboard. The prime suspect is the core constraint itself: the baseline is a conventional transformer with a 512-dim **embedding**, whereas the no-embedding `hidden_dim = vocab_size = 1024` design forces all computation through a vocab-space bottleneck. We tested this directly with the `v13_with_embedding` baseline (below), and the embedding closes ~43% of the gap, confirming the constraint, not the compute budget, is the wall.
+Results here are **~2.6× worse than the naive baseline**. The prime suspect is the core constraint: `hidden_dim = vocab_size = 1024` forces all computation through a vocab-space bottleneck, where the baseline has a 512-dim embedding.
 
-### The cost of readability, measured (3 GPUs, identical 600s train budget)
+### The cost of readability (3 GPUs, identical 600s budget)
 
-`v13_with_embedding` shares v12's exact body and differs only by a learned `Embedding(V, d) → Linear(d, V)`. From the committed run manifests (`artifacts/benchmark_results.json`, runs `0171d9fb` = `v13_embed` and `ae6c82a6` = `v12_sparse`, the pre-rename version ids):
+`v13_with_embedding` shares v12's exact body and differs only by a learned `Embedding(V, d) → Linear(d, V)`. From `artifacts/benchmark_results.json` (runs `0171d9fb` = `v13_embed` and `ae6c82a6` = `v12_sparse`, the pre-rename ids):
 
 | `MODEL_VERSION` | Embedding? | Params | Steps | val_bpb |
 |---|---|---|---|---|
 | **v13_with_embedding** | yes (baseline) | 4.46M | 603 | **2.368** |
 | v12_vocab_slice | no | 4.20M | 636 | 3.236 |
 
-Adding the embedding drops bpb **3.24 → 2.37 (≈0.87 bpb)** and closes ~43% of the gap to the 1.2244 baseline, in fewer steps.
+The embedding drops bpb **3.24 → 2.37** and closes ~43% of the gap to the 1.2244 baseline, confirming the constraint, not the compute budget, is the wall. That ~0.87 bpb gap is **the gap to eliminate** while keeping the state readable; `v13` is the performance target, not a template.
 
-> **Under revision (methodology corrected 2026-06-09: previously published values matched no committed manifest).** This table previously read v13 4.46M / 894 steps / 2.256 bpb, v12 4.20M / 945 steps / 3.079 bpb, and v8_lowrank_vv 0.16M / 477 steps / 3.427 bpb on "1× H100, 600 s", with final grad-norms 2.56 / 0.28 / 0.04 and a gradient-starvation reading of v8. No committed manifest records those runs, the committed logs contain no per-step `grad_norm` series, and the v8 row has no committed 600 s counterpart at all (the committed rank-8 sweep artifact is a 165-step, ~300 s run at 2.87 bpb). Treat the grad-norm narrative as unverified until the comparison is re-run.
-
-**Framing:** the bar is **performance *and* observability: readability that costs nothing.** So the ~0.87 bpb gap between v12 (readable) and `v13_with_embedding` (opaque) is **not a price to accept; it is the gap to eliminate** while keeping the state readable. `v13` is the **performance target**, not a template to copy; the win is a readable model that reaches it. Closing this gap (via training recipe, capacity, and architecture) *without* losing observability is the core research program.
+> **Under revision (methodology corrected 2026-06-09).** This table previously read v13 894 steps / 2.256 bpb, v12 945 steps / 3.079 bpb, and v8_lowrank_vv 477 steps / 3.427 bpb on "1× H100, 600 s", with a gradient-starvation reading of v8 based on final grad-norms. No committed manifest records those runs, the committed logs contain no per-step `grad_norm` series, and the v8 row has no committed 600 s counterpart. Treat the grad-norm narrative as unverified until re-run.
 
 ### Width sweep (2026-06): under revision
 
-The hypothesis: scaling v8's interaction **rank** improves bits-per-byte and causal coverage (`vitrum observe coverage`: the fraction of readable active-word sites that are causally load-bearing) at the same time. The committed sweep artifacts (`artifacts/rank{8,16,32,64}_manifest.json`; 165 steps, ~300 s wall-clock, 3 GPUs per run) do not support it yet:
+The hypothesis: scaling v8's interaction rank improves bpb and causal coverage together. The committed artifacts (`artifacts/rank{8,16,32,64}_manifest.json`; 165 steps, ~300 s, 3 GPUs per run) do not support it yet:
 
 | v8 width | params | train loss | val_bpb |
 |---|---|---|---|
@@ -112,159 +215,51 @@ The hypothesis: scaling v8's interaction **rank** improves bits-per-byte and cau
 | rank 32 | 557K | 4.35 | 2.56 |
 | rank 64 | 1.08M | 0.87 | 0.47 |
 
-bpb is not monotone in rank, and the rank-64 run is a memorization/leakage signal (0.47 bpb would beat the Parameter Golf record by more than 2×), echoing the rank-64 memorization in the historical run below. A previous version of this section claimed bpb falling monotonically 3.46 → 2.88 through rank 128, coverage rising 50% → 87%, and "no memorization at any rank"; those numbers match no committed manifest and no rank-128 artifact exists, so they are **under revision** (methodology corrected 2026-06-09); full audit note in [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md). `scripts/rank_sweep.sh` regenerates the sweep with manifests at three seeds.
+bpb is not monotone in rank, and rank 64 is a memorization/leakage signal (0.47 bpb would beat the Parameter Golf record by more than 2×), matching the rank-64 memorization in the historical run. An earlier version claimed bpb falling monotonically 3.46 → 2.88 through rank 128, coverage rising 50% → 87%, and no memorization at any rank; those numbers match no committed manifest and no rank-128 artifact exists. Full audit note in [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md#width-sweep-2026-06-what-the-committed-evidence-supports). Regenerate the sweep at three seeds with `scripts/rank_sweep.sh`.
 
 ### Beyond bigram: the induction test
 
-`vitrum observe induction` trains a variant on in-context key→value pairs. Each sequence has its own random map, so fixed weights cannot memorize it: only looking back at the context solves the query positions.
+`vitrum observe induction` trains a variant on in-context key→value pairs. Each sequence has its own random map, so only looking back at the context solves the query positions.
 
 | `MODEL_VERSION` | Query-position accuracy | Chance (bigram ceiling) | Key-free copier ceiling |
 |---|---|---|---|
 | `v8_lowrank_vv` | 1.6% | 2.1% | ~10.0% |
 | `v9_linattn` | 2.3% | 2.1% | ~10.0% |
 
-Both readable linear-attention variants sit at chance. They do no keyed in-context lookback, so what the observability tooling reads in them is a bigram-class mechanism. This is a known limit of linear attention, not necessarily of vocabulary-space state. `v1_shared_attn` (softmax attention, where induction heads form) cannot be probed yet because it shares one block in a loop and exposes no per-step state hook.
+Both readable linear-attention variants sit at chance: what the tooling reads in them is a bigram-class mechanism. This is a known limit of linear attention, not necessarily of vocabulary-space state. `v1_shared_attn` (softmax attention) cannot be probed yet because it shares one block in a loop and exposes no per-step state hook.
 
-Reproduce on CPU with default settings (a few minutes each): `vitrum observe induction --version v8_lowrank_vv`. First reported in PR #13 (2026-06-01) and re-run with identical results on 2026-10-10. No manifest is committed for this probe.
+Reproduce on CPU in a few minutes: `vitrum observe induction --version v8_lowrank_vv`. First reported in PR #13 (2026-06-01) and re-run with identical results on 2026-10-10. No manifest is committed for this probe.
 
-### What these results mean
+### What we've learned
 
-> **Note:** the analysis below reflects the original 3× A40 run. The head-to-head and embedding-control results above supersede parts of it (on the target corpus, v12 > v8 at rank 8; the embedding control reaches 2.37 bpb). The width-sweep claims that previously superseded the rank-64 memorization finding are under revision; the committed rank-64 sweep artifact shows the same memorization signal.
+- **Inductive bias matters more than parameter count.** `v8_lowrank_vv` (164K params) beat `v1_shared_attn` (3.4M) in the historical run: direct dimension-to-dimension interaction, `W[i, j] = "dim i predicts dim j"`, is a better prior for language than generic attention in vocab space. Bigram models encode the same structure, so whether multi-hop propagation captures longer-range dependencies is still open.
+- **Too much capacity in the right place enables memorization.** Rank 64 memorized the training batch (train loss 0.04) while rank 8 generalized; the committed rank-64 sweep artifact (0.47 val bpb) shows the same signal.
+- **Fourier-over-vocab parameterization is a structural bottleneck.** `v3_fourier_linattn` and `v5_fft_linattn` both got stuck. BPE vocab ids have no meaningful ordering, so smoothness over ids discards capacity. The linear-attention core works fine with dense projections (`v9_linattn`).
+- **Attention in vocab space is expensive and unhelpful at this scale.** `v1_shared_attn` spends most of its params on Q/K/V/O over V=1024 vectors and plateaus at val_loss ~6.06.
+- **Training instability is real.** `v7_soft_ops` spiked to 9.35 at step 161 and 8.28 at step 181 before recovering; the soft op-selection path is fragile.
+- **What is new here** is the combination: hidden_dim = vocab_size with no embedding or output projection, plus conv, decay-memory, and low-rank cross-position mechanisms, plus recurrent depth. Weight sharing across depth, Fourier parameterization, linear attention, and recurrent register machines are all prior work.
 
-**The low-rank V x V linear layer (v8) is the best architecture so far.** At rank 8 with 164K params, it reaches val_loss 5.24 in 100 steps, better than v2_conv (353K params, 464 steps) with half the parameters in one-fifth the steps. The train/val gap is essentially zero, confirming it's learning, not memorizing.
-
-**But at rank 64, the same architecture memorizes.** The 1.1M-param version drove train_loss to 0.04 while val_loss stayed high. The rank-64 `U @ V^T` matrix has enough capacity to store a bigram lookup table. The committed 2026-06 sweep artifact points the same way: `artifacts/rank64_manifest.json` records train loss 0.87 / val 0.47 bpb, implausibly below the Parameter Golf record, a memorization/leakage signal rather than generalization. (An earlier revision of this README claimed the 2026-06 sweep found no memorization at any rank; that claim matched no committed artifact and is withdrawn.)
-
-**This is still far from useful.** val_loss 5.24 (3.10 bpb) is well above the ~1.7 loss needed for 1 bpb. GPT-2 at 124M params achieves ~0.93 bpb. We're at 164K params, so the comparison isn't fair, but the gap is large.
-
-### What's actually unique here
-
-1. **hidden_dim = vocab_size with no embedding or output projection.** No published architecture does this. The state IS the prediction at every step.
-
-2. **Interpretability by construction.** You can read intermediate states as distributions over vocab dimensions. This is not a post-hoc technique.
-
-3. **The specific combination** of vocabulary-space state + various cross-position mechanisms (conv, decay memory, low-rank linear) + recurrent depth has not been explored before.
-
-### What's NOT unique
-
-- Weight sharing across depth: Universal Transformer (2019), ALBERT (2020), DEQ (2019) all do this.
-- Fourier parameterization: FNet (2022), butterfly matrices, Fourier Neural Operators.
-- Causal decay memory / linear attention: RWKV, Mamba, S4 all use equivalent mechanisms.
-- Low-rank dimension-to-dimension interaction: mathematically, `x @ U @ V^T` is just a rank-r linear layer.
-- Recurrent register machines: Neural Turing Machine (2014), Neural GPU (2016).
-
-### Honest assessment of the v8_lowrank_vv results
-
-The rank-8 variant works well because **direct bilinear dimension-to-dimension interaction is a good inductive bias when the dimensions are vocab entries**. Language is fundamentally about which words predict which other words. A model that directly parameterizes `W[i, j] = "dim i predicts dim j"` captures this structure more efficiently than architectures that must discover it through generic operations (convolutions, MLPs, Fourier transforms).
-
-But this is a well-known insight. Bigram and n-gram models encode the same structure. The open question is whether multi-hop propagation (8 hops through the low-rank interaction matrix) captures longer-range dependencies that simple n-grams cannot. The current results don't answer this; we'd need to test on tasks requiring longer-range reasoning.
-
-## Architecture
-
-All variants share the same skeleton:
-
-```
-Input:  one-hot("cat") -> R["cat"] = 1.0, everything else 0.0
-Repeat N times:
-  1. Cross-position mixing  (how do words at different positions interact?)
-  2. Within-position transform  (how do vocab-dim activations combine?)
-Output: register state -> softcap -> cross-entropy loss
-```
-
-No embedding. No output projection. (Except `v13_with_embedding`, the opaque baseline kept for comparison.)
-
-## Model Versions
-
-Names describe mechanism, not metaphor.
-
-### Core variants
-
-| `MODEL_VERSION` | Cross-position | Within-position | Notes |
-|---|---|---|---|
-| `v1_shared_attn` | GQA + RoPE (weights shared across depth) | Fourier-parameterized channel mix | 3.4M params, plateaus early |
-| `v2_conv` | Depthwise causal 1D conv | Fourier-parameterized channel mix | 353K params, strong baseline |
-| `v3_fourier_linattn` | Linear attn with causal decay; Q/K/V/O via Fourier basis | Fourier-parameterized channel mix | Stuck: Fourier parameterization bottleneck |
-| `v4_weight_shared` | Shared Q/K + per-head decay (v3 body) | Factored (diag + low-rank) channel mix | Size-reduction ablation of v3 |
-| `v5_fft_linattn` | Linear attn with causal decay; Q/K/V/O via rFFT | FFT-based channel mix | Fourier-over-vocab same caveat |
-| `v6_banded_fourier` | Band-partitioned Fourier linattn, gated coupling | Three parallel band projections, gated | 824K, still descending |
-| `v7_soft_ops` | Linear attn with causal decay | Gumbel-soft op-bank + soft register addressing | Unstable, loss spikes |
-| `v8_lowrank_vv` | Diagonal Q/K linear attn, activation similarity | Low-rank V x V (`U @ V^T + diag`) | **Best architecture** at rank 8 (historical run); 2026-06 width-sweep claims (rank 128 at 2.88 bpb) under revision (no committed manifest) |
-| `v9_linattn` | Linear attn with causal decay (dense projections) | MLP bottleneck | 4.2M params, best non-attention variant |
-| `v10_state_cond_op` | Linear attn in compressed state space | State-conditioned soft read/op/write dispatch | Untested |
-| `v11a_mixed_ops` | High-decay EMA + linear-attn | Sigmoid gate, dense layer, low-decay EMA | Trains; bf16 `arange` position bug fixed (2026-05) |
-| `v11b_hard_routing` | Multi-timescale linear attn | Gumbel-hard op routing + PonderNet halting | Untested |
-| `v12_vocab_slice` | Causal decay in fixed k-dim slice | MLP in k-dim slice | Best on target corpus (3.19 bpb, 2026-05); slice indices are deterministic vocab-id windows |
-| `v14_data_dependent` | Input-modulated conv (Hyena) | Data-dependent decay (Mamba), DCT mix | Mamba / RWKV / Hyena bundle; bf16 dtype bug fixed (2026-05) |
-| `v15_aux_loss` | v12 body + per-step CE + top-k sparsity | Entropy-adaptive write scaling | Training-side additions on v12 |
-| `v16_multi_branch` | Per-column decay memory | Branched gated MLP + cross-column inhibition | Ensemble + gated branches |
-
-### Opaque baseline (kept for comparison)
-
-| `MODEL_VERSION` | Purpose |
-|---|---|
-| `v13_with_embedding` | **Opaque-embedding baseline** (for comparison only). Adds `Embedding(V, d) -> Linear(d, V)` before the register state (same body as `v12_vocab_slice`). Exists solely to measure what readability costs (≈0.87 bpb); the rest of the project keeps the state readable. Not a template. |
-
-## Quick Start
+## Development
 
 ```bash
-# Setup on RunPod (installs into system Python, so a GPU image's
-# preinstalled torch satisfies the dependency and is left alone)
-curl -sSL https://raw.githubusercontent.com/urmzd/vitrum/main/setup.sh | bash
-
-# Or manually: creates .venv with every workspace package (torch included);
-# prefix commands with `uv run` or activate the venv first
-uv sync
-vitrum data download --variant sp1024
-
-# Train the best model (low-rank V x V, rank 8)
-INTERACTION_RANK=8 MODEL_VERSION=v8_lowrank_vv \
-  torchrun --standalone --nproc_per_node=$(nvidia-smi -L | wc -l) -m vitrum.training
-
-# List every discovered architecture (with metadata)
-vitrum list
-
-# Benchmark all models
-vitrum benchmark
-
-# Benchmark specific models
-vitrum benchmark --versions v8_lowrank_vv,v2_conv,v14_data_dependent --minutes 10
+uv sync --group dev                 # deps + pytest/ruff
+uv run pytest -q                    # CPU test suite
+uv run ruff check .                 # lint
+vitrum microbench v8_lowrank_vv     # quick CPU sanity for a variant
 ```
 
-All hyperparameters configurable via environment variables. See `vitrum.core.config`.
-
-## What We've Learned
-
-**Inductive bias matters more than parameter count.** `v8_lowrank_vv` (164K params, rank 8) beats `v1_shared_attn` (3.4M params, 20x more) because direct dimension-to-dimension interaction is a better prior for language than generic attention in vocab space.
-
-**Too much capacity in the right place enables memorization.** `v8_lowrank_vv` at rank 64 memorized the training batch in the original 3× A40 run (train loss 0.04) while rank 8 generalized, and the committed 2026-06 sweep artifact reproduces the signal (`artifacts/rank64_manifest.json`: 0.47 val bpb, implausibly below the Parameter Golf record). An earlier revision claimed the 2026-06 sweep showed train ≈ val at every rank through 128 and re-read the rank-8 result as gradient starvation; that claim matched no committed artifact and is under revision (methodology corrected 2026-06-09; see [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md)).
-
-**Fourier-over-vocab parameterization is a structural bottleneck.** `v3_fourier_linattn` and `v5_fft_linattn` both constrain their linear-attention projections to linear combinations of sin/cos over vocab indices. Both got stuck. Vocab ids from BPE have no meaningful ordering, so "smooth over vocab ids" throws away useful capacity. The linear-attention core itself works fine; see `v9_linattn`, which uses dense projections on the same core.
-
-**Attention in vocab space is expensive and unhelpful at this scale.** `v1_shared_attn` spends most of its 3.4M params on Q/K/V/O projections over V=1024 vectors and still plateaus at val_loss ~6.06. The overhead isn't justified.
-
-**Training instability is a real problem.** `v7_soft_ops` had two catastrophic loss spikes (9.35 at step 161, 8.28 at step 181) before recovering. The soft op-selection path is fragile.
-
-## Inspirations
-
-- [Linear Genetic Programming](https://github.com/urmzd/linear-gp): register machines, sequential cheap operations
-- [Tangled Program Graphs](https://web.cs.dal.ca/~mheywood/): hard bidding, multi-timescale memory
-- Neural GPU (Kaiser 2016): repeated convolution learns algorithms
-- Deep Equilibrium Models (Bai 2019): weight-shared iteration to convergence
-- Mamba (Gu & Dao 2023): data-dependent state transitions
-- RWKV: linear attention with causal decay
-- Hyena: input-dependent long convolutions
+CI runs lint and tests on every PR. See [CONTRIBUTING.md](CONTRIBUTING.md) for the add-a-model checklist and commit conventions.
 
 ## Documentation
 
-The docs map lives at [docs/README.md](docs/README.md). Key entries:
-
-| Document | Question it answers |
-|---|---|
-| [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) | Why: the mechanism-vs-boundary framing of the observability problem |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How: repo layout, shared infrastructure, the model-variant contract, entry points |
-| [docs/TESTING.md](docs/TESTING.md) | How it's verified: test gates, GPU-verified concerns, results discipline |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Working on the repo: setup, dev loop, add-a-model checklist |
-| [AGENTS.md](AGENTS.md) | Operational reference: env vars, training commands, RunPod |
+- [Documentation map](docs/README.md)
+- [The observability problem](docs/OBSERVABILITY.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Testing](docs/TESTING.md)
+- [Related work](docs/INTERESTING_RESEARCH.md)
+- [CPU microbench findings](docs/INTERESTING_FINDINGS.md)
+- [Contributing](CONTRIBUTING.md)
+- [Operational reference](AGENTS.md)
 
 ## Agent Skill
 
