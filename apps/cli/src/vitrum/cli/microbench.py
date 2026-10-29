@@ -6,7 +6,7 @@ Instantiates every model variant, runs forward+backward with synthetic tokens,
 and reports: param count, memory, throughput, loss, gradient health.
 
 Never use this to rank trained quality — synthetic microbenches don't transfer
-to real-text bits-per-byte (see docs/INTERESTING_FINDINGS.md). The trained-quality
+to real-text bits-per-byte (see docs/reference/interesting-findings.md). The trained-quality
 harness is `vitrum benchmark`.
 
 Usage:

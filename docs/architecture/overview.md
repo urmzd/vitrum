@@ -3,8 +3,8 @@
 This is the map of the system: what the project is trying to do, how the code
 is laid out, what the shared infrastructure provides, and the contract every
 model variant follows. For *why* the project exists (the observability
-problem), read [OBSERVABILITY.md](OBSERVABILITY.md) first. For how the pieces
-are verified, see [TESTING.md](TESTING.md).
+problem), read [observability.md](observability.md) first. For how the pieces
+are verified, see [testing.md](../reference/testing.md).
 
 ## What we're trying to do
 
@@ -18,7 +18,7 @@ against the [Parameter Golf](https://github.com/openai/parameter-golf) yardstick
 (16 MB artifact, <10 min on 8× H100, FineWeb bpb).
 
 Two research fronts, pursued together (details and current standing in
-[`TODO.md`](../TODO.md) and the root [`README.md`](../README.md)):
+[`roadmap.md`](../plans/roadmap.md) and the root [`README.md`](../../README.md)):
 
 - **Observability** — is the readable state real? Measured with the
   `vitrum observe` toolkit (causality, coverage, induction).
@@ -42,7 +42,7 @@ and `apps/*`, each with its own distribution.
 | `tests/` | CPU test suite (repo root); parametrized over the registry so new variants are auto-covered |
 | `artifacts/` | Committed run manifests backing published numbers; checkpoints are gitignored |
 | `logs/` | Per-run outputs: manifests, checkpoints, quantized artifacts (gitignored) |
-| `docs/` | This documentation set — see [docs/README.md](README.md) |
+| `docs/` | This documentation set — see [docs/README.md](../README.md) |
 | `skills/` | Portable agent skill mirroring the repo conventions |
 
 ## The shared computation skeleton

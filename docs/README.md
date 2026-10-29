@@ -7,9 +7,9 @@ in the root [README](../README.md).
 
 | Document | Question it answers |
 |---|---|
-| [OBSERVABILITY.md](OBSERVABILITY.md) | **Why** — what the observability problem actually is (mechanism vs I/O boundary), and the honest catches |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | **How** — system layout, shared infrastructure (`vitrum.core`), the model-variant contract, entry points, precision regime, provenance discipline |
-| [TESTING.md](TESTING.md) | **How it's verified** — what each test gates, what needs a GPU run instead, results discipline |
+| [architecture/observability.md](architecture/observability.md) | **Why** — what the observability problem actually is (mechanism vs I/O boundary), and the honest catches |
+| [architecture/overview.md](architecture/overview.md) | **How** — system layout, shared infrastructure (`vitrum.core`), the model-variant contract, entry points, precision regime, provenance discipline |
+| [reference/testing.md](reference/testing.md) | **How it's verified** — what each test gates, what needs a GPU run instead, results discipline |
 
 ## Working on the repo
 
@@ -17,15 +17,15 @@ in the root [README](../README.md).
 |---|---|
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | Setup, dev loop, add-a-model checklist, commit/PR conventions |
 | [../AGENTS.md](../AGENTS.md) | Operational reference for agents and humans: env-var table, training commands, RunPod deployment, file conventions |
-| [../TODO.md](../TODO.md) | The live research roadmap (both fronts: observability and performance) |
+| [plans/roadmap.md](plans/roadmap.md) | The live research roadmap (both fronts: observability and performance) |
 
 ## Research notes and findings
 
 | Document | Purpose |
 |---|---|
-| [INTERESTING_FINDINGS.md](INTERESTING_FINDINGS.md) | CPU microbench (`vitrum microbench`) results — speed and gradient health, **not** trained quality |
-| [INTERESTING_RESEARCH.md](INTERESTING_RESEARCH.md) | Related work (LMGP, TPGs, Neural GPU, DEQ, Mamba/RWKV/Hyena) |
-| [DESIGN_SHARED_MEMORY.md](DESIGN_SHARED_MEMORY.md) | Design notes for the v3/v4 shared-memory-bank family |
+| [reference/interesting-findings.md](reference/interesting-findings.md) | CPU microbench (`vitrum microbench`) results — speed and gradient health, **not** trained quality |
+| [reference/interesting-research.md](reference/interesting-research.md) | Related work (LMGP, TPGs, Neural GPU, DEQ, Mamba/RWKV/Hyena) |
+| [architecture/shared-memory.md](architecture/shared-memory.md) | Design notes for the v3/v4 shared-memory-bank family |
 
 Trained results, benchmark tables, and the Parameter Golf standing are in the
 root [README](../README.md); each variant directory may also carry its own
