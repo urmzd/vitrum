@@ -192,6 +192,6 @@ as the rank-64 memorization seen in the earlier 3× A40 run, not against it.
 > identical. Re-run the v8/v12/v13 comparison under the corrected regime before
 > citing close margins.
 
-See [`apps/cli/src/vitrum/cli/observe.py`](../apps/cli/src/vitrum/cli/observe.py)
+See [`apps/cli/src/vitrum/cli/observe.py`](../../apps/cli/src/vitrum/cli/observe.py)
 (`vitrum observe`) for the tooling (`trace`,
 `wordmap`, `causality`, `demo`, `sweep`, `coverage`, `induction`).

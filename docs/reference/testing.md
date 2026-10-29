@@ -2,7 +2,7 @@
 
 How correctness is enforced in this repo: the CPU test suite, what each gate
 protects, and what still requires a GPU run to verify. System map in
-[ARCHITECTURE.md](ARCHITECTURE.md).
+[architecture/overview.md](../architecture/overview.md).
 
 ## Philosophy
 

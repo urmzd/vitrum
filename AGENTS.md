@@ -18,7 +18,7 @@
 5. Add any new env vars to the appropriate config class in `vitrum.core.config`.
 6. Add any new control tensor name patterns to `CONTROL_TENSOR_NAME_PATTERNS` in `vitrum.core.quantize` (these stay in fp32 during bfloat16 training).
 7. Update top-level `README.md` — add a row to the architecture table and a line to what-we've-learned.
-8. Update `TODO.md` if relevant.
+8. Update `docs/plans/roadmap.md` if relevant.
 
 No harness edits are needed: `vitrum run-all`, `vitrum benchmark`,
 `vitrum observe`, and the test suite all iterate the registry. Add
@@ -52,7 +52,7 @@ Parameters whose names end with a pattern in `CONTROL_TENSOR_NAME_PATTERNS` (suf
 - `vitrum observe coverage` — the observability metric: fraction of readable active-word sites that are causally load-bearing, reported across τ thresholds.
 - `vitrum observe induction` — beyond-bigram in-context key→value recall; the verdict must beat bigram chance (5/V) and the key-free copier ceiling (~1/P).
 
-`tests/test_observe.py` guards that state capture never alters the forward pass; `scripts/rank_sweep.sh` regenerates the docs/OBSERVABILITY.md width table (train + coverage, 3 seeds).
+`tests/test_observe.py` guards that state capture never alters the forward pass; `scripts/rank_sweep.sh` regenerates the docs/architecture/observability.md width table (train + coverage, 3 seeds).
 
 ## RunPod deployment
 
@@ -111,7 +111,7 @@ The non-obvious split (everything else is discoverable with ripgrep, e.g. `rg "d
 
 - Two benchmark harnesses exist on purpose: `vitrum microbench` is a synthetic-data CPU microbench (speed, init loss, gradient health — never use it to rank trained quality), while `vitrum benchmark` is the wallclock-budget GPU comparison that runs `vitrum.training` per version via torchrun; `vitrum results` aggregates its `logs/*_manifest.json` output.
 - Model directories are named `vN_mechanism_description/` under `libs/architectures/src/vitrum/architectures/`, each containing `__init__.py` and `model.py`; `vitrum.core.registry` auto-discovers any `AgiModel` subclass with a `version` set, so there is no central model list to edit anywhere (`vitrum run-all` and `vitrum benchmark` iterate the registry too).
-- Shared infrastructure lives in `libs/core` (`vitrum.core`: config, data, eval, quantize, registry); the docs map is `docs/README.md` (system design: `docs/ARCHITECTURE.md`; verification: `docs/TESTING.md`); findings from the CPU microbench live in `docs/INTERESTING_FINDINGS.md`.
+- Shared infrastructure lives in `libs/core` (`vitrum.core`: config, data, eval, quantize, registry); the docs map is `docs/README.md` (system design: `docs/architecture/overview.md`; verification: `docs/reference/testing.md`); findings from the CPU microbench live in `docs/reference/interesting-findings.md`.
 
 ## MODEL_VERSION values
 

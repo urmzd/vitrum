@@ -1,8 +1,8 @@
 # Contributing
 
 Orientation: [docs/README.md](docs/README.md) maps all documentation.
-The system design is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); the
-verification story is in [docs/TESTING.md](docs/TESTING.md); operational
+The system design is in [docs/architecture/overview.md](docs/architecture/overview.md); the
+verification story is in [docs/reference/testing.md](docs/reference/testing.md); operational
 commands and the env-var table are in [AGENTS.md](AGENTS.md).
 
 ## Setup
@@ -21,7 +21,7 @@ vitrum microbench v8_lowrank_vv   # quick CPU sanity for a variant (speed/gradie
 ```
 
 Ground rules (the "why" for each is in [AGENTS.md](AGENTS.md) and
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)):
+[docs/architecture/overview.md](docs/architecture/overview.md)):
 
 - **Never edit hyperparameter defaults** to run an experiment — every knob is
   an env var; override at runtime.
@@ -47,7 +47,7 @@ Ground rules (the "why" for each is in [AGENTS.md](AGENTS.md) and
    precision, and observe-capture tests pick the new version up automatically
    — `vitrum run-all`, `vitrum benchmark`, and `vitrum observe` need no edits either.
 6. Document it: a row in the root README architecture table, a line in
-   what-we've-learned once trained, and `TODO.md` if it opens work.
+   what-we've-learned once trained, and `docs/plans/roadmap.md` if it opens work.
 
 ## Commits and PRs
 

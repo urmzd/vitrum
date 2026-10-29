@@ -17,11 +17,11 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/urmzd/vitrum" alt="License"></a>
 </p>
 
-> **Status: paused since July 2026.** The readable variants probed so far are bigram-class: `v8_lowrank_vv` and `v9_linattn` score at chance on in-context key→value recall (see [Beyond bigram](#beyond-bigram-the-induction-test)). The tooling and framing stand; the architectures do not yet do computation that is hard to read. Post-hoc work such as Anthropic's Jacobian lens now reads vocabulary-space variables out of opaque models directly (see [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md#the-post-hoc-alternative-the-jacobian-lens)).
+> **Status: paused since July 2026.** The readable variants probed so far are bigram-class: `v8_lowrank_vv` and `v9_linattn` score at chance on in-context key→value recall (see [Beyond bigram](#beyond-bigram-the-induction-test)). The tooling and framing stand; the architectures do not yet do computation that is hard to read. Post-hoc work such as Anthropic's Jacobian lens now reads vocabulary-space variables out of opaque models directly (see [docs/architecture/observability.md](docs/architecture/observability.md#the-post-hoc-alternative-the-jacobian-lens)).
 
 Vitrum is Latin for glass. The repo was previously `glassbox-lm`; GitHub redirects the old URL.
 
-The goal is **observability at no performance cost**: architectures where you can see how the computation works without giving up the quality of an opaque model. A readable model has to match the opaque baseline (`v13_with_embedding`) to make the point. For why readable I/O alone is not the answer, see [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md).
+The goal is **observability at no performance cost**: architectures where you can see how the computation works without giving up the quality of an opaque model. A readable model has to match the opaque baseline (`v13_with_embedding`) to make the point. For why readable I/O alone is not the answer, see [docs/architecture/observability.md](docs/architecture/observability.md).
 
 ## Features
 
@@ -215,7 +215,7 @@ The hypothesis: scaling v8's interaction rank improves bpb and causal coverage t
 | rank 32 | 557K | 4.35 | 2.56 |
 | rank 64 | 1.08M | 0.87 | 0.47 |
 
-bpb is not monotone in rank, and rank 64 is a memorization/leakage signal (0.47 bpb would beat the Parameter Golf record by more than 2×), matching the rank-64 memorization in the historical run. An earlier version claimed bpb falling monotonically 3.46 → 2.88 through rank 128, coverage rising 50% → 87%, and no memorization at any rank; those numbers match no committed manifest and no rank-128 artifact exists. Full audit note in [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md#width-sweep-2026-06-what-the-committed-evidence-supports). Regenerate the sweep at three seeds with `scripts/rank_sweep.sh`.
+bpb is not monotone in rank, and rank 64 is a memorization/leakage signal (0.47 bpb would beat the Parameter Golf record by more than 2×), matching the rank-64 memorization in the historical run. An earlier version claimed bpb falling monotonically 3.46 → 2.88 through rank 128, coverage rising 50% → 87%, and no memorization at any rank; those numbers match no committed manifest and no rank-128 artifact exists. Full audit note in [docs/architecture/observability.md](docs/architecture/observability.md#width-sweep-2026-06-what-the-committed-evidence-supports). Regenerate the sweep at three seeds with `scripts/rank_sweep.sh`.
 
 ### Beyond bigram: the induction test
 
@@ -253,11 +253,11 @@ CI runs lint and tests on every PR. See [CONTRIBUTING.md](CONTRIBUTING.md) for t
 ## Documentation
 
 - [Documentation map](docs/README.md)
-- [The observability problem](docs/OBSERVABILITY.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Testing](docs/TESTING.md)
-- [Related work](docs/INTERESTING_RESEARCH.md)
-- [CPU microbench findings](docs/INTERESTING_FINDINGS.md)
+- [The observability problem](docs/architecture/observability.md)
+- [Architecture](docs/architecture/overview.md)
+- [Testing](docs/reference/testing.md)
+- [Related work](docs/reference/interesting-research.md)
+- [CPU microbench findings](docs/reference/interesting-findings.md)
 - [Contributing](CONTRIBUTING.md)
 - [Operational reference](AGENTS.md)
 

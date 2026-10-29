@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regenerate the docs/OBSERVABILITY.md width-sweep table end to end:
+# Regenerate the docs/architecture/observability.md width-sweep table end to end:
 # v8_lowrank_vv at rank 8/32/64/128, 3 seeds each, 600s wallclock per run
 # (the 1x H100 protocol the published table used), then the coverage probe
 # (the observability axis) on every checkpoint. Aggregate bpb across seeds

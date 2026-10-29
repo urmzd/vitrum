@@ -32,10 +32,10 @@ vitrum list                                              # prints every discover
 vitrum microbench --iters 3 --batch 2 --seq-len 128      # CPU microbench: synthetic data, speed and gradient health only
 vitrum benchmark --versions v8_lowrank_vv,v12_vocab_slice --minutes 10 --seeds 1337,1338,1339   # wallclock GPU comparison via the training loop
 vitrum results                                           # table from logs/*_manifest.json; mean±std per config when n>1
-bash scripts/rank_sweep.sh                                 # regenerates the docs/OBSERVABILITY.md width table (ranks x seeds + coverage)
+bash scripts/rank_sweep.sh                                 # regenerates the docs/architecture/observability.md width table (ranks x seeds + coverage)
 ```
 
-Never rank architectures with the CPU microbench; it measures speed and init behavior, not trained quality (see `docs/INTERESTING_FINDINGS.md`).
+Never rank architectures with the CPU microbench; it measures speed and init behavior, not trained quality (see `docs/reference/interesting-findings.md`).
 
 ## Observe (the point of the project)
 
