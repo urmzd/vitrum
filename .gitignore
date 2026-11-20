@@ -13,3 +13,8 @@ data/datasets/
 data/tokenizers/
 *.egg-info/
 artifacts/checkpoints/
+
+# Repo skills load in Claude Code from .claude/skills (links into skills/)
+!.claude/
+.claude/*
+!.claude/skills/
