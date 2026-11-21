@@ -19,7 +19,7 @@
 
 > **Status: paused since July 2026.** The readable variants probed so far are bigram-class: `v8_lowrank_vv` and `v9_linattn` score at chance on in-context key→value recall (see [Beyond bigram](#beyond-bigram-the-induction-test)). The tooling and framing stand; the architectures do not yet do computation that is hard to read. Post-hoc work such as Anthropic's Jacobian lens now reads vocabulary-space variables out of opaque models directly (see [docs/architecture/observability.md](docs/architecture/observability.md#the-post-hoc-alternative-the-jacobian-lens)).
 
-Vitrum is Latin for glass. The repo was previously `glassbox-lm`; GitHub redirects the old URL.
+Vitrum is Latin for glass.
 
 The goal is **observability at no performance cost**: architectures where you can see how the computation works without giving up the quality of an opaque model. A readable model has to match the opaque baseline (`v13_with_embedding`) to make the point. For why readable I/O alone is not the answer, see [docs/architecture/observability.md](docs/architecture/observability.md).
 
